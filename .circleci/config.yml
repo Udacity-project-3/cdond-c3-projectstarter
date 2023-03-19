@@ -95,7 +95,57 @@ jobs:
             cd backend
             npm install
             npm audit fix --audit-level=critical
-      
+  
+  deploy-infrastructure:
+    docker:
+      # Docker image that supports AWS CLI
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Install tar and zip utilities
+          command: yum -y install tar gzip
+      - run:
+          name: Ensure backend infrastructure exists
+          command: |
+            pwd
+            aws cloudformation deploy \
+              --template-file ./.circleci/files/backend.yml \
+              --tags project=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7} \
+              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Ensure frontend infrastructure exist
+          command: |
+            pwd
+            aws cloudformation deploy \
+              --template-file ./.circleci/files/frontend.yml \
+              --tags project=udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7} \
+              --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Send backend IP to memstash
+          command: |
+            pwd
+            BACKEND_IP=$(aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --filters "Name=tag:project,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --output text)
+            echo "BACKEND_IP=${BACKEND_IP}"
+            curl -H "Content-Type: text/plain" -H "token: 7079126b-54c1-4ae1-b7cf-577d8a27c76f" --request PUT --data "$BACKEND_IP" https://api.memstash.io/values/BACKEND_IP_${CIRCLE_WORKFLOW_ID:0:7}
+      - run:
+          name: Add backend IP to ansible inventory
+          command: |
+            pwd
+            BACKEND_IP=$(curl -H "token: 7079126b-54c1-4ae1-b7cf-577d8a27c76f" --request GET https://api.memstash.io/values/BACKEND_IP_${CIRCLE_WORKFLOW_ID:0:7})
+            echo ${BACKEND_IP} >> ./.circleci/ansible/inventory.txt
+            cat ./.circleci/ansible/inventory.txt
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./.circleci/ansible/inventory.txt
+      - destroy-environment:
+          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}   
   
 
 
@@ -112,4 +162,8 @@ workflows:
           requires: [build-backend]
       - scan-frontend:
           requires: [build-frontend]
-     
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [main]
