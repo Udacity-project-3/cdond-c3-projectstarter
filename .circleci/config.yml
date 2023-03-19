@@ -158,17 +158,16 @@ jobs:
       - image: python:3.7-alpine3.11
     steps:
       - checkout
-      - attach_workspace:
-          at: ~/
       - add_ssh_keys:
           fingerprints: 
             - "d4:63:bc:10:99:52:85:2f:b5:41:55:05:ad:14:4d:e6:5d:9b:81:d4"
+      - attach_workspace:
+          at: ~/
       - run:
           name: Install dependencies
           command: |
             apk add --update ansible
             pip install awscli
-      - create-dotenv-file
       - run:
           name: Configure server
           command: |
