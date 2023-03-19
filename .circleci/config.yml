@@ -239,6 +239,7 @@ jobs:
           command: |
             cd backend
             npm install
+            sudo npm install pm2 -g
             echo ENVIRONMENT=production > ".env"
             echo TYPEORM_CONNECTION=postgres >> ".env"
             echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> ".env"
@@ -330,12 +331,10 @@ jobs:
       - checkout
       # Add ssh keys with fingerprint
       - add_ssh_keys:
-          fingerprints: ['44:c6:5c:d8:10:3f:05:b1:c3:c1:b8:9e:92:75:23:f8']
+          fingerprints: ["ab:3e:93:98:14:00:f0:37:6e:f4:28:9c:fe:7f:cc:33"]
       # attach workspace
       - attach_workspace:
           at: ~/
-      - attach_workspace:
-          at: /tmp/workspace
       - restore_cache:
           key: backend-build
       - run:
@@ -346,7 +345,6 @@ jobs:
             pip install awscli
       - run:
           name: Deploy backend
-          no_output_timeout: 20m
           command: |
             # your code here
             cd backend
