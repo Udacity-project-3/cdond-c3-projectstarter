@@ -364,17 +364,18 @@ jobs: #now we will bbuild our jobs
           name: Deploy backend
           command: |
             # your code here
-            cd backend
-            npm i
-            npm run build
-            cd ..
-            # Zip the directory
-            tar -C backend -czvf artifact.tar.gz .
-            cd .circleci/ansible
-            echo "Contents  of the inventory.txt file is -------"
-            cat inventory.txt
-            export ANSIBLE_HOST_KEY_CHECKING=False
-            ansible-playbook -i inventory.txt deploy-backend.yml
+              cd backend
+              npm i
+              npm run build 
+              cd ..
+              tar -C backend -czvf artifact.tar.gz .
+              mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
+              mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
+              cd .circleci/ansible
+              echo "contents of the inventory.txt file is ------$(tail -i inventory.txt)"
+              cat inventory.txt
+              export ANSIBLE_HOST_KEY_CHECKING=False
+              ansible-playbook -i inventory.txt deploy-backend.yml
       # Here's where you will add some code to rollback on failure 
       - revert-migrations
       - destroy-environment 
@@ -402,7 +403,7 @@ jobs: #now we will bbuild our jobs
               exit 0
             else
               exit 1
-            fi
+           fi
       - run:
           name: Frontend smoke test.
           command: |
