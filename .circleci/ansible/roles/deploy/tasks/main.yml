@@ -12,11 +12,11 @@
    # pwd
   # ls -ltr
 
-- name: Start job   
-  shell: |
-    pwd
-    cd /home/ubuntu/backend
-    npm install
-    pm2 stop default
-    pm2 start npm -- start  
+#- name: Start job   
+ # shell: |
+  #  pwd
+   # cd /home/ubuntu/backend
+    #npm install
+    #pm2 stop default
+    #pm2 start npm -- start  
   
