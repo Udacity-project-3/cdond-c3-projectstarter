@@ -231,7 +231,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-                keys: [backend-build]
+                keys: [backend-build-cache]
       - run:
           name: Install dependencies
           command: |
@@ -243,6 +243,7 @@ jobs:
           name: Run migrations
           command: |
             cd backend
+            
             echo ENVIRONMENT=production > ".env"
             echo TYPEORM_CONNECTION=postgres >> ".env"
             echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> ".env"
@@ -254,9 +255,12 @@ jobs:
             echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> ".env"
             echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> ".env"
             echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> ".env"
-            npm cache clean --force
+            #npm cache clean --force
+            export TYPEORM_HOST=$(aws ec2 describe-instances --region us-east-1 --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
             sudo npm install
-            sudo npm run migrations >> migrations_dump.txt
+            npm i migrations
+            npm run premigrations
+            npm run migrations >> migrations_dump.txt
             cat migrations_dump.txt
       - run:
           name: Send migration results to kvdb.io 
