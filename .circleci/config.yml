@@ -278,14 +278,11 @@ jobs: #now we will bbuild our jobs
             echo    TYPEORM_PASSWORD=$TYPEORM_PASSWORD                     >> "backend/.env"
             echo    TYPEORM_DATABASE=$TYPEORM_DATABASE                     >> "backend/.env"
             cd backend
-            npm install typescript
-            npm run migrations > migration_output.log
-            echo
-            cat migration_output.log
-            echo
-            echo
-            pwd migration_output.log
-            echo
+            #npm install typescript
+            npm install      
+            npm run migrations 2>&1 | tee migrations_dump.txt
+            npm run migrations > migrations_dump.txt
+            cat migrations_dump.txt
                      
           no_output_timeout: 30m
           #name: Run migrations
@@ -301,7 +298,7 @@ jobs: #now we will bbuild our jobs
       - run: 
           name: Send Migration Results to kvdb.io
           command: |
-            if grep -q "has been executed successfully." ~/project/backend/migration_output.log
+            if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             then
               # If you are using kvdb.io, generate the bucket ID "QKLPKb7NtNNtGNbQL6QPPE" in your local terminal first
               curl -d '1' https://kvdb.io/QKLPKb7NtNNtGNbQL6QPPE/migration_${CIRCLE_WORKFLOW_ID:0:7}  
@@ -342,57 +339,46 @@ jobs: #now we will bbuild our jobs
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
       - destroy-environment
 
-  deploy-backend: # create deploy-backend
+  deploy-backend:
     docker:
-      - image: cimg/python:3.10
+      # Docker image here that supports Ansible
+      - image: python:3.7-alpine3.11
     steps:
+      # Checkout code from git
       - checkout
-      - run: sudo apt-get install tar gzip -y
-      - run: 
-          name: Install aws_cli
-          command: |
-            #test
-            sudo apt-get update && sudo apt-get install -yy less
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install    
-      - install_ansible
-      - install_nodejs
+      # Add ssh keys with fingerprint
       - add_ssh_keys:
           fingerprints: ["ab:3e:93:98:14:00:f0:37:6e:f4:28:9c:fe:7f:cc:33"]
+      # attach workspace
       - attach_workspace:
           at: ~/
       - restore_cache:
-          keys: [backend-deps]
+          key: backend-build
       - run:
-          name:
+          name: Install dependencies
           command: |
-            cd backend
-            npm install
-      - run:
-          name: Package backend
-          command: |
-            cd backend
-            npm run build
-            tar -czvf artifact.tar.gz dist/* package*
-
-            cd .. 
-            cp backend/artifact.tar.gz .circleci/ansible/roles/deploy/files
-            
+            # your code here
+            apk add --update ansible openssh-client tar gzip curl nodejs npm
+            pip install awscli
       - run:
           name: Deploy backend
           command: |
-            export TYPEORM_MIGRATIONS_DIR=./migrations
-            export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
-            export TYPEORM_MIGRATIONS=./migrations/*.ts
-
+            # your code here
+            cd backend
+            npm i
+            npm run build
+            cd ..
+            # Zip the directory
+            tar -C backend -czvf artifact.tar.gz .
             cd .circleci/ansible
-            echo "Contents  of the inventory file is -------"
+            echo "Contents  of the inventory.txt file is -------"
             cat inventory.txt
+            export ANSIBLE_HOST_KEY_CHECKING=False
             ansible-playbook -i inventory.txt deploy-backend.yml
-            
-      - destroy-environment   
-      - revert-migrations 
+      # Here's where you will add some code to rollback on failure 
+      - revert-migrations
+      - destroy-environment 
+      
 
   smoke-test: # createe smoke-test
     docker:
