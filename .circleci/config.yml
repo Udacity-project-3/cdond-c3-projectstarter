@@ -227,11 +227,16 @@ jobs:
           name: Run migrations
           command: |
             cd backend
-            npm config delete proxy
-            npm set maxsockets 30
-            npm cache clean --force
+            rm -rf node_modules
+            #rm package-lock.json 
+            #npm cache clear --force
+            #npm install
+            #npm config delete proxy
+            #npm set maxsockets 30
+            npm cache verify
             npm install --force
             npm run migrations > migrations_dump.txt
+            
       - run:
           name: Send migration info to kvdb.io 
           command: |   
@@ -367,6 +372,6 @@ workflows:
       - run-migrations:
           requires: [configure-infrastructure]
       - deploy-frontend:
-          requires: [run-migrations]
+          requires: [configure-infrastructure]
       - deploy-backend:
-          requires: [run-migrations]
+          requires: [configure-infrastructure]
