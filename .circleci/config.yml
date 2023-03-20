@@ -280,7 +280,7 @@ jobs: #now we will bbuild our jobs
             cd backend
             #npm install typescript
             npm install --force     
-            sudo npm run migrations > migrations_dump.txt
+            #sudo npm run migrations > migrations_dump.txt
             cat migrations_dump.txt
                      
           no_output_timeout: 30m
