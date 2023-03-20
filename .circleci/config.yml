@@ -341,43 +341,37 @@ jobs: #now we will bbuild our jobs
 
   deploy-backend:
     docker:
-      - image: python:3.7-alpine3.11
-        environment:
-          NODE_ENV: "production"
-          VERSION: "1"
-          ENVIRONMENT: "production"
-          TYPEORM_CONNECTION: $TYPEORM_CONNECTION
-          TYPEORM_HOST: $TYPEORM_HOST
-          TYPEORM_USERNAME: $TYPEORM_USERNAME
-          TYPEORM_PASSWORD: $TYPEORM_PASSWORD
-          TYPEORM_DATABASE: $TYPEORM_DATABASE
-          TYPEORM_PORT: $TYPEORM_PORT
-          TYPEORM_ENTITIES: $TYPEORM_ENTITIES       
+      - image: amazon/aws-cli
     steps:
       - checkout
-      - add_ssh_keys:
-          fingerprints: ["ab:3e:93:98:14:00:f0:37:6e:f4:28:9c:fe:7f:cc:33"]
-      - attach_workspace: 
-          at: ~/
-      - restore_cache:
-          keys:
-            - build-backend
+      - run: yum install -y tar gzip 
+      - attach_workspace:
+            at: ~/      
       - run:
           name: Install dependencies
           command: |
-            apk add --update ansible nodejs npm tar gzip
+              curl -sL https://rpm.nodesource.com/setup_lts.x | bash -
+              yum -y install nodejs
+      - run:
+          name: Install awscli and ansible
+          command: |
+              yum install -y awscli
+              amazon-linux-extras install epel -y
+              yum update -y
+              yum install -y ansible
       - run:
           name: Deploy backend
           command: |
-            cd backend
-            npm install
-            npm run build
-            cd ..
-            tar -C backend -czvf artifact.tar.gz .
-            cat ~/project/.circleci/ansible/inventory.txt
-            ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/deploy-backend.yml
-
-   
+              cd backend
+              npm i
+              npm run build
+              cd ..
+              # zip backend
+              tar -C backend -czvf artifact.tar.gz .
+              ls -l artifact.tar.gz
+              pwd
+              ansible-playbook -i ~/inventory.txt ~/project/.circleci/ansible/deploy-backend.yml
+              
       # Here's where you will add some code to rollback on failure 
       - revert-migrations
       - destroy-environment 
