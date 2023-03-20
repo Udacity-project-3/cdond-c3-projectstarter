@@ -1,32 +1,34 @@
----
-- name: Upgrade npm
+- name: Copy backend files
   become: true
+  copy:
+      src: /home/backend.tar.gz
+      dest: /home/ubuntu/backend.tar.gz
+
+- name: Start PM2
   shell: |
-    npm install -g npm@latest
+      cd /home/ubuntu/
+      tar xzvf backend.tar.gz
 
-- name: Copy compiled files
-  unarchive:
-    src: /root/project/backend.tar.gz
-    dest: /home/ubuntu/
+      cd backend
 
-- name: Build backend
-  ignore_errors: yes
-  shell: |
-    cd /home/ubuntu/backend
-    npm i
-    npm run build
+      sudo npm install -g npm@latest
+      sudo npm install -g webpack-dev-server
+      sudo npm install
+      sudo npm run build
+      sudo pm2 start npm --name backend -- start
 
-- name: Stop and delete already running server
-  ignore_errors: yes
-  shell: |
-    pm2 stop backend
-    pm2 delete backend
+# - name: start pm2 for dist/main.js
+#   become: no
+#   shell: |
+#       sudo chown ubuntu:ubuntu /home/ubuntu/.pm2/rpc.sock /home/ubuntu/.pm2/pub.sock
+#       pm2 start main.js
+#   args:
+#       chdir: /home/ubuntu/backend/dist
 
-- name: Start server
-  become: true
-  shell: |
-    cd /home/ubuntu/backend
-    pm2 start npm --name backend -- start
-    pm2 ls
+# /root/project
 
+# LICENSE.md              images                  udapeople.png
+# README.md               instructions            util
+# backend                 package-lock.json
+# frontend                udapeople-pipeline.png
   
