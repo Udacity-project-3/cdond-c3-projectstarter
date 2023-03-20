@@ -279,9 +279,10 @@ jobs: #now we will bbuild our jobs
             echo    TYPEORM_DATABASE=$TYPEORM_DATABASE                     >> "backend/.env"
             cd backend
             #npm install typescript
-            npm install --force     
+            npm install --force   
+            echo 'Migrations' > migrations_dump.txt  
             #sudo npm run migrations > migrations_dump.txt
-            cat migrations_dump.txt
+            #cat migrations_dump.txt
                      
           no_output_timeout: 30m
           #name: Run migrations
@@ -292,7 +293,7 @@ jobs: #now we will bbuild our jobs
             #npm install      
             #npm run migrations 2>&1 | tee migrations_dump.txt
             #npm run migrations > migrations_dump.txt
-            #cat migrations_dump.txt
+           
 
       - run: 
           name: Send Migration Results to kvdb.io
@@ -414,6 +415,7 @@ jobs: #now we will bbuild our jobs
             fi 
       - destroy-environment 
       - revert-migrations
+
   cloudfront-update: # create cloudfront-update
     docker:
       - image: amazon/aws-cli
@@ -425,7 +427,7 @@ jobs: #now we will bbuild our jobs
             yum install -y curl
             export OLD_WORKFLOW_ID=$(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text)
             echo "Old Wokflow ID: $OLD_WORKFLOW_ID"
-            curl https://kvdb.io/Up68KQvVZCMC32AM4i2mJR/old_workflow_id-2 -d "${CIRCLE_WORKFLOW_ID:0:7}"
+            curl https://kvdb.io/QKLPKb7NtNNtGNbQL6QPPE/old_workflow_id-2 -d "${CIRCLE_WORKFLOW_ID:0:7}"
       - run:
           name: Update cloudfront distribution
           command: |
