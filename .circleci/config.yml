@@ -249,6 +249,7 @@ jobs:
             echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
             echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
             cd backend
+            chmod -R a+rwx ./node_modules 
             sudo npm install
             sudo npm run migrations > migrations_dump.txt
            
