@@ -23,7 +23,8 @@ commands:
     description: Destroy backend and frontend cloudformation stacks given a workflow ID.
     parameters:
       workflowID:
-        type: string  
+        type: string 
+        default: ${CIRCLE_WORKFLOW_ID:0:7} 
     steps:
       - run:
           name: Echo workflow ID that is going be be destroyed
@@ -202,8 +203,7 @@ jobs:
           root: ~/
           paths:
             - ./.circleci/ansible/inventory.txt
-      - destroy-environment:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}    
+      - destroy-environment
 
   configure-infrastructure:
     docker:
@@ -228,8 +228,7 @@ jobs:
             cat ./.circleci/ansible/inventory.txt
             export ANSIBLE_HOST_KEY_CHECKING=false
             ansible-playbook -i ./.circleci/ansible/inventory.txt ./.circleci/ansible/configure-server.yml
-      - destroy-environment:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}        
+      - destroy-environment       
 
   run-migrations:
     docker:
@@ -260,8 +259,8 @@ jobs:
                 echo "no migration happened"
                         
             fi
-      - destroy-environment:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}       
+      - destroy-environment
+      - revert-migrations     
 
   deploy-frontend:
     docker:
@@ -301,10 +300,8 @@ jobs:
           root: .
           paths:
             - ./frontend/dist
-      - destroy-environment:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
-      - revert-migrations:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}      
+      - destroy-environment
+      - revert-migrations    
                     
   deploy-backend:
     docker:
@@ -335,10 +332,8 @@ jobs:
             tar czf backend.tar.gz backend/
             export ANSIBLE_HOST_KEY_CHECKING=false
             ansible-playbook -i ./.circleci/ansible/inventory.txt ./.circleci/ansible/deploy-backend.yml -vvv
-      - destroy-environment:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
-      - revert-migrations:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}  
+      - destroy-environment
+      - revert-migrations 
 
   smoke-test:
     docker:
@@ -369,10 +364,8 @@ jobs:
           command: |
             URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-west-2.amazonaws.com"
             curl -s ${URL} | grep "Welcome"
-      - destroy-environment:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
-      - revert-migrations:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}  
+      - destroy-environment
+      - revert-migrations 
 
   cloudfront-update:
     docker:
@@ -403,10 +396,8 @@ jobs:
               --tags project=udapeople \
               --stack-name "udapeople-cloudfront-production" \
               --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}"
-      - destroy-environment:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
-      - revert-migrations:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}  
+      - destroy-environment
+      - revert-migrations 
 
   cleanup:
     docker:
