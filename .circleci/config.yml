@@ -254,7 +254,8 @@ jobs:
                 echo "no migration happened"
                         
             fi
-
+      - revert-migrations
+      - destroy-environment 
     
   deploy-frontend:
     docker:
