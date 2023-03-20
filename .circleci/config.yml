@@ -279,9 +279,8 @@ jobs: #now we will bbuild our jobs
             echo    TYPEORM_DATABASE=$TYPEORM_DATABASE                     >> "backend/.env"
             cd backend
             #npm install typescript
-            npm install      
-            npm run migrations 2>&1 | tee migrations_dump.txt
-            npm run migrations > migrations_dump.txt
+            npm install --force     
+            sudo npm run migrations > migrations_dump.txt
             cat migrations_dump.txt
                      
           no_output_timeout: 30m
