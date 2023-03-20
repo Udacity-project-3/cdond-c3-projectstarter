@@ -1,20 +1,32 @@
-- name: Copy backend files
+---
+- name: Upgrade npm
   become: true
-  copy:
-    src: /root/project/artifact.tar.gz
-    dest: /home/ubuntu/artifact.tar.gz
-
-- name: Prepare job
   shell: |
-    cd /home/ubuntu/
-    tar xzvf artifact.tar.gz
-    pwd
-    ls -ltr
+    npm install -g npm@latest
 
-- name: Start job   
+- name: Copy compiled files
+  unarchive:
+    src: /root/project/backend.tar.gz
+    dest: /home/ubuntu/
+
+- name: Build backend
+  ignore_errors: yes
   shell: |
-    pwd
     cd /home/ubuntu/backend
-    npm install
-    pm2 stop default
-    pm2 start npm -- start  
+    npm i
+    npm run build
+
+- name: Stop and delete already running server
+  ignore_errors: yes
+  shell: |
+    pm2 stop backend
+    pm2 delete backend
+
+- name: Start server
+  become: true
+  shell: |
+    cd /home/ubuntu/backend
+    pm2 start npm --name backend -- start
+    pm2 ls
+
+  

@@ -341,37 +341,33 @@ jobs: #now we will bbuild our jobs
 
   deploy-backend:
     docker:
-      - image: amazon/aws-cli
+      # Docker image that supports Ansible
+      - image: python:3.7-alpine3.11
     steps:
       - checkout
-      - run: yum install -y tar gzip 
+      - add_ssh_keys:
+          fingerprints:  ["ab:3e:93:98:14:00:f0:37:6e:f4:28:9c:fe:7f:cc:33"]
       - attach_workspace:
-            at: ~/      
+          at: .
+      - restore_cache:
+          keys: [backend-build-cache]
       - run:
           name: Install dependencies
           command: |
-              curl -sL https://rpm.nodesource.com/setup_lts.x | bash -
-              yum -y install nodejs
-      - run:
-          name: Install awscli and ansible
-          command: |
-              yum install -y awscli
-              amazon-linux-extras install epel -y
-              yum update -y
-              yum install -y ansible
+            apk add --update ansible
+            apk add --no-cache curl
+            apk add --no-cache openssh-client
+            apk add --no-cache --upgrade bash
+            pip install awscli
+      - create-dotenv-file
       - run:
           name: Deploy backend
           command: |
-              cd backend
-              npm i
-              npm run build
-              cd ..
-              # zip backend
-              tar -C backend -czvf artifact.tar.gz .
-              ls -l artifact.tar.gz
-              pwd
-              ansible-playbook -i ~/inventory.txt ~/project/.circleci/ansible/deploy-backend.yml
-              
+            pwd
+            tar czf backend.tar.gz backend/
+            export ANSIBLE_HOST_KEY_CHECKING=false
+            ansible-playbook -i ./.circleci/ansible/inventory.txt ./.circleci/ansible/deploy-backend.yml -vvv
+  
       # Here's where you will add some code to rollback on failure 
       - revert-migrations
       - destroy-environment 
