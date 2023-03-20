@@ -7,7 +7,7 @@ commands:
         parameters:
             workflow_id:
                 type: string
-                
+                default: ${CIRCLE_WORKFLOW_ID:0:7}
         steps:
             - run:
                   name: Destroy environments
@@ -22,7 +22,8 @@ commands:
         description: Revert the last migration
         parameters:
             workflow_id:
-                type: string      
+                type: string  
+                default: ${CIRCLE_WORKFLOW_ID:0:7}    
         steps:
             - run:
                   name: Revert migrations
@@ -340,7 +341,6 @@ workflows:
                 filters:
                   branches:
                     only: [master]
-    
             - configure-infrastructure:
                   requires: [deploy-infrastructure]
             - run-migrations:
