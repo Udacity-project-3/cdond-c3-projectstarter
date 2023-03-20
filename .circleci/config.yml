@@ -228,6 +228,7 @@ jobs:
           command: |
             cd backend
             npm config delete proxy
+            npm set maxsockets 30
             npm cache clean --force
             npm install --force
             npm run migrations > migrations_dump.txt
