@@ -227,33 +227,27 @@ jobs:
                  
   run-migrations:
     docker:
-      # Docker image here that supports NodeJS
       - image: circleci/node:13.8.0
     steps:
       - checkout
-      - restore_cache:
-          keys: [backend-build-cache]
-      - attach_workspace:
-          at: .
-      - create-dotenv-file
       - run:
-          name: Run database migration
+          name: Run migrations
           command: |
-            cd ./backend
-            pwd
+            cd backend
+            npm install
+            npm run migrations:revert
             npm run migrations > migrations_dump.txt
-            cat ./migrations_dump.txt    
       - run:
-          name: Send migration status to kvdb.io 
-          command: |   
+          name: Send migration results to kvdb.io 
+          command: |
             if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             then
-              curl https://kvdb.io/QKLPKb7NtNNtGNbQL6QPPE/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
+                curl -k https://kvdb.io/QKLPKb7NtNNtGNbQL6QPPE/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
             fi
-                # If you are using kvdb.io, generate the bucket ID "QKLPKb7NtNNtGNbQL6QPPE" in your local terminal first
-              
+      - destroy-environment  
       - revert-migrations
-      - destroy-environment
+
+    
   deploy-frontend:
     docker:
       # Docker image here that supports AWS CLI
