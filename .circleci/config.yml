@@ -341,41 +341,43 @@ jobs: #now we will bbuild our jobs
 
   deploy-backend:
     docker:
-      # Docker image here that supports Ansible
       - image: python:3.7-alpine3.11
+        environment:
+          NODE_ENV: "production"
+          VERSION: "1"
+          ENVIRONMENT: "production"
+          TYPEORM_CONNECTION: $TYPEORM_CONNECTION
+          TYPEORM_HOST: $TYPEORM_HOST
+          TYPEORM_USERNAME: $TYPEORM_USERNAME
+          TYPEORM_PASSWORD: $TYPEORM_PASSWORD
+          TYPEORM_DATABASE: $TYPEORM_DATABASE
+          TYPEORM_PORT: $TYPEORM_PORT
+          TYPEORM_ENTITIES: $TYPEORM_ENTITIES       
     steps:
-      # Checkout code from git
       - checkout
-      # Add ssh keys with fingerprint
       - add_ssh_keys:
           fingerprints: ["ab:3e:93:98:14:00:f0:37:6e:f4:28:9c:fe:7f:cc:33"]
-      # attach workspace
-      - attach_workspace:
+      - attach_workspace: 
           at: ~/
       - restore_cache:
-          key: backend-build
+          keys:
+            - build-backend
       - run:
           name: Install dependencies
           command: |
-            # your code here
-            apk add --update ansible openssh-client tar gzip curl nodejs npm
-            pip install awscli
+            apk add --update ansible nodejs npm tar gzip
       - run:
           name: Deploy backend
           command: |
-            # your code here
-              cd backend
-              npm i
-              npm run build 
-              cd ..
-              tar -C backend -czvf artifact.tar.gz .
-              mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
-              mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
-              cd .circleci/ansible
-              echo "contents of the inventory.txt file is ------$(tail -i inventory.txt)"
-              cat inventory.txt
-              export ANSIBLE_HOST_KEY_CHECKING=False
-              ansible-playbook -i inventory.txt deploy-backend.yml
+            cd backend
+            npm install
+            npm run build
+            cd ..
+            tar -C backend -czvf artifact.tar.gz .
+            cat ~/project/.circleci/ansible/inventory.txt
+            ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/deploy-backend.yml
+
+   
       # Here's where you will add some code to rollback on failure 
       - revert-migrations
       - destroy-environment 
