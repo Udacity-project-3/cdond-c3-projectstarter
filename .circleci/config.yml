@@ -366,6 +366,7 @@ jobs: #now we will bbuild our jobs
             echo
             tar czf backend.tar.gz -P backend
             cp backend.tar.gz /home
+            ls /home
       - run:
           name: Deploy backend
           command: |
