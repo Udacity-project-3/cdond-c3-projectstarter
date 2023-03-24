@@ -264,7 +264,7 @@ jobs: #now we will bbuild our jobs
       - run: 
           name: Send Migration Results to kvdb.io
           command: |
-            if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
+            if grep -q "has been executed successfully." ~/project/backend/migrations_log.txt
             then
               # If you are using kvdb.io, generate the bucket ID "QKLPKb7NtNNtGNbQL6QPPE" in your local terminal first
               curl -d '1' https://kvdb.io/QKLPKb7NtNNtGNbQL6QPPE/migration_${CIRCLE_WORKFLOW_ID:0:7}  
@@ -305,66 +305,55 @@ jobs: #now we will bbuild our jobs
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
       - destroy-environment
 
-  deploy-backend:
+  deploy-backend: # create deploy-backend
     docker:
-      - image: python:3.11-rc-alpine
+      - image: cimg/python:3.10
     steps:
       - checkout
+      - run: sudo apt-get install tar gzip -y
+      - run: 
+          name: Install aws_cli
+          command: |
+            #test
+            sudo apt-get update && sudo apt-get install -yy less
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install    
+      - install_ansible
+      - install_nodejs
+      - add_ssh_keys:
+          fingerprints: ["ae:b3:aa:b2:4f:fb:e4:9e:1f:ad:ec:7f:49:97:f8:ae"]
       - attach_workspace:
           at: ~/
-      - add_ssh_keys:
-          fingerprints: ["ae:b3:aa:b2:4f:fb:e4:9e:1f:ad:ec:7f:49:97:f8:ae"] 
-       
+      - restore_cache:
+          keys: [backend-deps]
       - run:
-          name: Install dependencies
+          name:
           command: |
-            apk update
-            apk add --update ansible
-            apk add --no-cache tar npm gzip curl gcompat
-            apk add --no-cache python3 py3-pip
-            pip3 install --upgrade pip
-            pip3 install awscli
-            rm -rf /var/cache/apk/*
-      - run:
-          name: Save all db varibles in env file 
-          command: |
-            ls
-            pwd
             cd backend
-            echo ENVIRONMENT=production > ".env"
-            echo NODE_ENV=production >>  ".env"
-            echo TYPEORM_HOST=$TYPEORM_HOST >> ".env"
-            echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> ".env"
-            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> ".env"
-            echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> ".env"
-            echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> ".env"
-            echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> ".env"
-            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> ".env"
-            echo TYPEORM_PORT=$TYPEORM_PORT >> ".env"
-            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> ".env"
-            cat .env
-            ls      
+            npm install
+      - run:
+          name: Package backend
+          command: |
+            cd backend
+            npm run build
+            tar -czvf artifact.tar.gz dist/* package*
+            cd .. 
+            cp backend/artifact.tar.gz .circleci/ansible/roles/deploy/files
+            
       - run:
           name: Deploy backend
           command: |
-            cd backend
-            pwd
-            npm install --force
-            npm run build            
-      - run:
-          name: Create artifact
-          command: |
-            tar czf artifact.tar.gz backend
-      - run:
-          name: Deploy backend
-          command: |
+            export TYPEORM_MIGRATIONS_DIR=./migrations
+            export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
+            export TYPEORM_MIGRATIONS=./migrations/*.ts
             cd .circleci/ansible
-            echo "Contents of the inventory.txt file is:"
+            echo "Contents  of the inventory file is -------"
             cat inventory.txt
-            export ANSIBLE_HOST_KEY_CHECKING=False
             ansible-playbook -i inventory.txt deploy-backend.yml
-      - revert-migrations
-      - destroy-environment
+            
+      - destroy-environment   
+      - revert-migrations 
       
     
 
