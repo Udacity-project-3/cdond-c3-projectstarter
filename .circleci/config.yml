@@ -2,7 +2,6 @@
 #create by: Sshreya
 #date :March
 
-
 version: 2.1
 
 commands:
@@ -486,7 +485,7 @@ jobs: #now we will bbuild our jobs
               aws --region us-east-1 cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID:0:7}"
               echo "clean up done"
             else
-              echo "$OldWorkflowID==$currentWorkflowID -> all good now"
+              echo "$OldWorkflowID==$currentWorkflowID -> cant clean"
             fi
 
 workflows:  # create workflows
