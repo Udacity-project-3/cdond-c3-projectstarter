@@ -418,7 +418,7 @@ jobs: #now we will bbuild our jobs
       - destroy-environment 
       - revert-migrations
 
-    cloudfront-update:
+  cloudfront-update:
     docker:
       # Docker image here that supports AWS CLI
       - image: amazon/aws-cli
