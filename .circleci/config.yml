@@ -43,7 +43,7 @@ commands:
             
               cd ~/projects/backend
               npm install
-              npm run migration:revert
+              npm run migrations:revert
             
 
   destroy-environment: #step for create destroy-environment
