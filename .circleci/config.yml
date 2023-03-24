@@ -349,7 +349,7 @@ jobs: #now we will bbuild our jobs
           command: |
             cd backend
             pwd
-            npm install
+            npm install --force
             npm run build            
       - run:
           name: Create artifact
