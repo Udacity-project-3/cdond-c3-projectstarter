@@ -253,37 +253,14 @@ jobs: #now we will bbuild our jobs
             unzip awscliv2.zip
             sudo ./aws/install     
       - run:
-          name: Run DB migrations
+          name: Run migrations
           command: |
-            echo    ENVIRONMENT=production                                 > "backend/.env"
-            echo    TYPEORM_CONNECTION=postgres                            >> "backend/.env"
-            echo    TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts   >> "backend/.env"
-            echo    TYPEORM_MIGRATIONS=./src/migrations/*.ts               >> "backend/.env"
-            echo    TYPEORM_MIGRATIONS_DIR=./src/migrations                >> "backend/.env"
-            echo    NODE_ENV=production                                    >> "backend/.env"
-            echo    TYPEORM_HOST=$TYPEORM_HOST                             >> "backend/.env"
-            echo    TYPEORM_PORT=$TYPEORM_PORT                             >> "backend/.env"
-            echo    TYPEORM_USERNAME=$TYPEORM_USERNAME                     >> "backend/.env"
-            echo    TYPEORM_PASSWORD=$TYPEORM_PASSWORD                     >> "backend/.env"
-            echo    TYPEORM_DATABASE=$TYPEORM_DATABASE                     >> "backend/.env"
             cd backend
-            #npm install typescript
-            npm install --force   
-            #echo 'Migrations' > migrations_dump.txt  
-            npm run migrations > migrations_dump.txt
-            cat migrations_dump.txt
-                     
-          no_output_timeout: 30m
-          #name: Run migrations
-          #command: |
-           # export TYPEORM_HOST=$(aws ec2 describe-instances --region us-east-1 --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
-            #
-            #cd backend 
-            #npm install      
-            #npm run migrations 2>&1 | tee migrations_dump.txt
-            #npm run migrations > migrations_dump.txt
+            npm install
+            touch migrations_log.txt
+            npm run migrations >> migrations_log.txt
+            cat migrations_log.txt
            
-
       - run: 
           name: Send Migration Results to kvdb.io
           command: |
@@ -330,57 +307,66 @@ jobs: #now we will bbuild our jobs
 
   deploy-backend:
     docker:
-      - image: python:3.7-alpine3.11
+      - image: python:3.11-rc-alpine
     steps:
       - checkout
-      - add_ssh_keys:
-          fingerprints: ["ae:b3:aa:b2:4f:fb:e4:9e:1f:ad:ec:7f:49:97:f8:ae"]
       - attach_workspace:
           at: ~/
-      - restore_cache:
-          keys: ['backend-build']
+      - add_ssh_keys:
+          fingerprints: ["ae:b3:aa:b2:4f:fb:e4:9e:1f:ad:ec:7f:49:97:f8:ae"] 
+       
       - run:
           name: Install dependencies
           command: |
-            apk add --update ansible openssh-client tar gzip
+            apk update
+            apk add --update ansible
+            apk add --no-cache tar npm gzip curl gcompat
+            apk add --no-cache python3 py3-pip
+            pip3 install --upgrade pip
+            pip3 install awscli
+            rm -rf /var/cache/apk/*
       - run:
-          name: Upzip the Backend code
+          name: Save all db varibles in env file 
           command: |
-            cd /home/circleci/project
-            echo    ENVIRONMENT=production                                 > "backend/.env"
-            echo    TYPEORM_CONNECTION=postgres                            >> "backend/.env"
-            echo    TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts   >> "backend/.env"
-            echo    TYPEORM_MIGRATIONS=./src/migrations/*.ts               >> "backend/.env"
-            echo    TYPEORM_MIGRATIONS_DIR=./src/migrations                >> "backend/.env"
-            echo    NODE_ENV=production                                    >> "backend/.env"
-            echo    TYPEORM_HOST=$TYPEORM_HOST                             >> "backend/.env"
-            echo    TYPEORM_PORT=$TYPEORM_PORT                             >> "backend/.env"
-            echo    TYPEORM_USERNAME=$TYPEORM_USERNAME                     >> "backend/.env"
-            echo    TYPEORM_PASSWORD=$TYPEORM_PASSWORD                     >> "backend/.env"
-            echo    TYPEORM_DATABASE=$TYPEORM_DATABASE                     >> "backend/.env"
-            echo
-            cat backend/.env
-            echo
-            tar czf backend.tar.gz -P backend
-            cp backend.tar.gz /home
-            ls /home
+            ls
+            pwd
+            cd backend
+            echo ENVIRONMENT=production > ".env"
+            echo NODE_ENV=production >>  ".env"
+            echo TYPEORM_HOST=$TYPEORM_HOST >> ".env"
+            echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> ".env"
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> ".env"
+            echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> ".env"
+            echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> ".env"
+            echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> ".env"
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> ".env"
+            echo TYPEORM_PORT=$TYPEORM_PORT >> ".env"
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> ".env"
+            cat .env
+            ls      
       - run:
           name: Deploy backend
           command: |
-            export ANSIBLE_HOST_KEY_CHECKING=False
-            ansible-playbook \
-            -i .circleci/ansible/inventory.txt \
-            .circleci/ansible/deploy-backend.yml
+            cd backend
+            pwd
+            npm install
+            npm run build            
       - run:
-          name: Install AWS CLI for rollback
-          when: on_fail
+          name: Create artifact
           command: |
-            apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
+            tar czf artifact.tar.gz backend
+      - run:
+          name: Deploy backend
+          command: |
+            cd .circleci/ansible
+            echo "Contents of the inventory.txt file is:"
+            cat inventory.txt
+            export ANSIBLE_HOST_KEY_CHECKING=False
+            ansible-playbook -i inventory.txt deploy-backend.yml
       - revert-migrations
       - destroy-environment
       
-
-      
+    
 
   smoke-test: # createe smoke-test
     docker:
