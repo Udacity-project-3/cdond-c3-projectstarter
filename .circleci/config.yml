@@ -40,11 +40,14 @@ commands:
           name: Revert migrations
           when: on_fail
           command: |
-            
+            SUCCESS=$(curl --insecure  https://kvdb.io/QKLPKb7NtNNtGNbQL6QPPE/migration_<< parameters.Workflow_ID >>)
+            # Logic for reverting the database state
+            if [[ $SUCCESS == 1 ]];
+            then
               cd ~/projects/backend
               npm install
               npm run migrations:revert
-            
+            fi
 
   destroy-environment: #step for create destroy-environment
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
@@ -382,7 +385,7 @@ jobs: #now we will bbuild our jobs
 
   smoke-test: # createe smoke-test
     docker:
-      - image: amazon/aws-cli
+      - image: amazon/aws-cli:latest
     steps:
       - checkout
       - run:
@@ -421,7 +424,7 @@ jobs: #now we will bbuild our jobs
 
   cloudfront-update: # create cloudfront-update
     docker:
-      - image: amazon/aws-cli
+      - image: amazon/aws-cli:latest
     steps:
       - checkout
       - run:
@@ -444,14 +447,14 @@ jobs: #now we will bbuild our jobs
       
   cleanup: # createe cleanup
     docker:
-      - image: amazon/aws-cli
+      - image: amazon/aws-cli:latest
     steps:
       - checkout
       - run:
           name: Remove old stacks and files
           command: |
             yum install -y curl         
-            export OLDWORKFLOWID=$(curl --insecure https://kvdb.io/Up68KQvVZCMC32AM4i2mJR/old_workflow_id-2)
+            export OLDWORKFLOWID=$(curl --insecure https://kvdb.io/QKLPKb7NtNNtGNbQL6QPPE/old_workflow_id-2)
             echo Old Workflow ID: $OLDWORKFLOWID 
             echo CIRCLE_WORKFLOW_ID "${CIRCLE_WORKFLOW_ID:0:7}"
             # Fetch the stack names 
