@@ -1,37 +1,50 @@
-- name: Copy backend files
+---
+# Tasks for deploying the backend
+- name: Update and upgrade apt
+  become: true
+  apt:
+    update_cache: yes
+    upgrade: 'yes'
+- name: Install nodejs and npm
+  become: true
+  apt:
+    name: ["nodejs", "npm"]
+    state: latest
+    update_cache: yes
+- name: Install pm2
+  become: true
+  npm:
+    name: pm2
+    global: yes
+    production: yes
+    state: present
+- name: Create directory for backend
+  become: true
+  file:
+    path: /home/ubuntu/backend
+    state: directory
+- name: Copy backend files to new directory
   become: true
   copy:
-    src: /home/backend.tar.gz
-    dest: /home/ubuntu/backend.tar.gz
-
-- name: Start PM2
+    src: /root/project/artifact.tar.gz
+    dest: /home/ubuntu/backend
+- name: Unarchive backend 
+  become: true
+  unarchive:
+    src: /home/ubuntu/backend/artifact.tar.gz
+    dest: /home/ubuntu
+    copy: no
+- name: Install node & build package
+  become: true
   shell: |
-    cd /home/ubuntu/
-    tar xzvf backend.tar.gz
-
-    cd backend
-
-    sudo npm install -g npm@latest
-    sudo npm install -g webpack-dev-server
-    sudo npm install
-    sudo npm run build
-    sudo pm2 start npm --name backend -- start
-
-# - name: start pm2 for dist/main.js
-#   become: no
-#   shell: |
-#       sudo chown ubuntu:ubuntu /home/ubuntu/.pm2/rpc.sock /home/ubuntu/.pm2/pub.sock
-#       pm2 start main.js
-#   args:
-#       chdir: /home/ubuntu/backend/dist
-
-# /root/project
-
-# LICENSE.md              images                  udapeople.png
-# README.md               instructions            util
-# backend                 package-lock.json
-# frontend                udapeople-pipeline.png
-
+    cd /home/ubuntu/backend
+    npm i
+    npm run build
+- name: Run PM2
+  become: true
+  shell: |
+    cd /home/ubuntu/backend
+    pm2 start npm --name backend -- start
 
   
 
