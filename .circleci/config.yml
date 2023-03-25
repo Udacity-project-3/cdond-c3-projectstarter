@@ -394,6 +394,12 @@ jobs: #now we will bbuild our jobs
             export API_URL="http://${BACKEND_IP}:3030"
             echo "API_URL = ${API_URL}"
             echo "${API_URL}/api/status" 
+            if curl "${API_URL}/api/status" | grep "ok"
+            then
+                exit 0
+            else
+                exit 1
+            fi 
             
             
     
